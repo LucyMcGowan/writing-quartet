@@ -1,0 +1,300 @@
+---
+title: "Causal inference is not a statistical problem"
+author: "Lucy D'Agostino McGowan"
+format: pdf
+execute: 
+  echo: false
+  message: false
+  warning: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(patchwork)
+options(
+  ggplot2.discrete.colour = ggokabeito::palette_okabe_ito(),
+  ggplot2.discrete.fill = ggokabeito::palette_okabe_ito(),
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+# set default theme
+theme_set(
+  theme_minimal(
+    base_size = 14, 
+    base_family = "sans"
+  ) %+replace% 
+    theme(
+      panel.grid.minor = element_blank(),
+      legend.position = "bottom"
+    )
+)
+theme_dag <- function() {
+  ggdag::theme_dag(base_family = "sans")
+}
+geom_dag_label_repel <- function(..., seed = 10) {
+  ggdag::geom_dag_label_repel(
+    aes(x, y, label = label),
+    box.padding = 3.5, 
+    inherit.aes = FALSE,
+    max.overlaps = Inf, 
+    family = "sans",
+    seed = seed,
+    label.size = NA, 
+    label.padding = 0.1,
+    size = 14 / 3,
+    ...
+  ) 
+}
+
+```
+
+## Introduction
+
+Anscombe's quartet is a set of four datasets that have the same statistical properties in terms of summary statistics (means, variances, correlations, and linear regression fits), but exhibit different distributions and relationships when plotted on a graph. The quartet, often used to teach introductory statistics courses, was created to illustrate the importance of visualizing data before drawing conclusions based on statistical analyses alone. Here, we propose a different quartet, where again statistical summaries do not provide insight into the true underlying mechanism, but even visualizations do not solve the issue. Here, an understanding or assumption of the data generating mechanism is required to correctly capture the relationship between the available factors. This proposed quartet is meant to help readers better understand the assumptions underlying causal inference methods, further driving home the point that in order to accurately estimate causal effects we require more information than can be gleaned from statistical tools alone.
+
+The data generated to create the figures displayed here are included in an R package titled `causalquartet`.
+
+## Methods
+
+We propose the following four data generation mechanisms, summarized by the equations below as well as the directed acyclic graphs displayed in @fig-1. Here, $X$ is presumed to be some exposure of interest, $Y$ an outcome, and $Z$ a known, measured factor. The M-Bias equation includes two additional unmeasured factors, $U_1$ and $U_2$.
+
+(1) Collider:
+
+$$X \sim N(0, 1)$$
+
+$$Y = X + \varepsilon_y, \textrm{ }\varepsilon_y\sim N(0, 1)$$
+
+$$Z =  0.45X + 0.77 Y + \varepsilon_z$$, $$\varepsilon_z \sim N(0,1)$$
+
+(2) Confounder:
+
+$$Z \sim N(0, 1)$$
+
+$$X = Z + \varepsilon_x,\textrm{ }\varepsilon_x\sim N(0, 1)$$
+
+$$Y =  0.5Z + \varepsilon_y, \textrm{ }\varepsilon_y\sim N(0, 1)$$
+
+(3) Mediator:
+
+$$X \sim N(0, 1)$$
+
+$$Z = X + \varepsilon_z, \textrm{ }\varepsilon_z\sim N(0, 1)$$
+
+$$Y =  Z + \varepsilon_y, \textrm{ }\varepsilon_y\sim N(0, 1)$$
+
+(4) M-Bias:
+
+$$U_1 \sim N(0, 1)$$
+
+$$U_2 \sim N(0, 1)$$
+
+$$Z = 8 U_1 + U_2 + \varepsilon_z, \textrm{ }\varepsilon_z\sim N(0, 1)$$
+
+$$X =  U_1 + \varepsilon_x, \textrm{ }\varepsilon_x\sim N(0, 1)$$
+
+$$Y =  X + U_2 + \varepsilon_y, \textrm{ }\varepsilon_y\sim N(0, 1)$$
+
+In each of these scenarios, a linear model fit to estimate the relationship between $X$ and $Y$ with no further adjustment will result in a $\hat\beta$ coefficient of 1. Additionally, the correlation between $X$ and the additional known factor $Z$ is 0.70.
+
+We have simulated 100 data points from each of the four mechanisms, each is displayed in @fig-2. This set of figures demonstrates that despite the very different data generating mechanisms, there is not a clear way to determine the "appropriate" way to model the effect of the exposure $X$ and the outcome $Y$ without additional information. For example, the unadjusted models are displayed in @fig-2, showing a relationship between $X$ and $Y$ of 1. This is the correct causal model for data generating mechanisms (1) and (4), however it overstates the effect of $X$ for data generating mechanism (2), and describes the total effect of $X$ on $Y$ for data generating mechanism (3), but not the direct effect (@tbl-1). Indeed, even examining the correlation between $X$ and the known factor $Z$ does not help us determine whether adjusting for $Z$ is appropriate, as it is 0.7 in all cases (@tbl-2).
+
+```{r}
+#| label: fig-1
+#| fig-cap: "Directed Acyclic Graphs describing the four data generating mechanisms: (1) Collider (2) Confounder (3) Mediator (4) M-Bias."
+#| fig-height: 6
+
+library(ggdag)
+library(tidyverse)
+library(ggokabeito)
+library(patchwork)
+
+coords <- list(
+  x = c(X = 2, Z = 1, Y = 3),
+  y = c(X = 1, Z = 1.1, Y = 1)
+)
+d_conf <- dagify(
+  X ~ Z,
+  Y ~ X + Z,
+  exposure = "X",
+  outcome = "Y",
+  labels = c(X = "X", Y = "Y", Z = "Z"),
+  coords = coords
+)
+
+coords <- list(
+  x = c(X = 1, Z = 3, Y = 2),
+  y = c(X = 1, Z = 1.1, Y = 1)
+)
+d_coll <- dagify(
+  Z ~ X + Y,
+  Y ~ X,
+  exposure = "X",
+  outcome = "Y",
+  labels = c(X = "X", Y = "Y", Z = "Z"),
+  coords = coords
+)
+
+coords <- list(
+  x = c(X = 1, Z = 2, Y = 3),
+  y = c(X = 1, Z = 1.1, Y = 1)
+)
+d_med <- dagify(
+  Z ~ X,
+  Y ~ Z,
+  exposure = "X",
+  outcome = "Y",
+  labels = c(X = "X", Y = "Y", Z = "Z"),
+  coords = coords
+)
+
+coords <- list(
+  x = c(U1 = 1, U2 = 2, X = 3, Z = 3, Y = 5),
+  y = c(U1 = 2, U2 = 4, X = 1, Z = 2, Y = 2)
+)
+d_mbias <- dagify(
+  Z ~ U1 + U2,
+  X ~ U1,
+  Y ~ X + U2,
+  exposure = "X",
+  outcome = "Y",
+  labels = c(X = "X", Y = "Y", Z = "Z"),
+  coords = coords
+)
+
+d_mbias %>%
+  tidy_dagitty() %>%
+  ggplot(
+    aes(x = x, y = y, xend = xend, yend = yend)
+  ) +
+  geom_dag_point() +
+  geom_dag_edges() +
+  geom_dag_text() +
+  theme_dag() +
+  coord_cartesian(clip = "off") +
+  ggtitle("(4) M-bias") -> p_m_bias
+
+d_coll %>%
+  tidy_dagitty() %>%
+  ggplot(
+    aes(x = x, y = y, xend = xend, yend = yend)
+  ) +
+  geom_dag_point() +
+  geom_dag_edges() +
+  geom_dag_text() +
+  theme_dag() +
+  coord_cartesian(clip = "off") +
+  ggtitle("(1) Collider") -> p_coll
+
+d_med %>%
+  tidy_dagitty() %>%
+  ggplot(
+    aes(x = x, y = y, xend = xend, yend = yend)
+  ) +
+  geom_dag_point() +
+  geom_dag_edges() +
+  geom_dag_text() +
+  theme_dag() +
+  coord_cartesian(clip = "off") + 
+  ggtitle("(3) Mediator") -> p_med
+
+d_conf %>%
+  tidy_dagitty() %>%
+  ggplot(
+    aes(x = x, y = y, xend = xend, yend = yend)
+  ) +
+  geom_dag_point() +
+  geom_dag_edges() +
+  geom_dag_text() +
+  theme_dag() +
+  coord_cartesian(clip = "off") + 
+  ggtitle("(2) Confounder") -> p_conf
+
+(p_coll + p_conf) /  (p_med + p_m_bias)  
+```
+
+```{r}
+n <- 100
+set.seed(26775)
+
+confounding <- tibble(
+  z = rnorm(n),
+  x = z + rnorm(n),
+  y = 0.5 * x + z + rnorm(n)
+)
+
+
+
+set.seed(472046)
+
+collider <- tibble(
+  x = rnorm(n),
+  y = x + rnorm(n),
+  z = 0.45 * x + 0.77 * y + rnorm(n)
+)
+
+set.seed(44433)
+
+mediator <- tibble(
+  x = rnorm(n),
+  z = x + rnorm(n),
+  y = z + rnorm(n)
+)
+
+set.seed(839)
+
+m_bias <- tibble(
+  u1 = rnorm(n),
+  u2 = rnorm(n),
+  z = 8 * u1 + u2 + rnorm(n),
+  x = u1 + rnorm(n, sd = 1),
+  y =  x + u2 + rnorm(n, sd = 1)
+)
+
+d <- bind_rows(confounding, collider, mediator, m_bias) %>%
+  mutate(type = rep(c("(2) Confounder", "(1) Collider", "(3) Mediator", "(4) M-Bias"), each = 100))
+```
+
+```{r}
+#| fig-cap: "100 points generated using the data generating mechanisms specified (1) Collider (2) Confounder (3) Mediator (4) M-Bias The blue line displays a linear regression fit estimating the relationship between X and Y, in each case the slope is 1. "
+#| label: fig-2
+ggplot(d, aes(x = x, y = y)) +
+  geom_point() + 
+  geom_smooth(method = "lm", formula = "y ~ x") +
+  facet_wrap(~type)
+```
+
++---------------------------+----------------------------+-----------------------+
+| Data generating mechanism | Correct causal model       | Correct causal effect |
++===========================+============================+=======================+
+| \(1\) Collider            | Y \~ X                     | 1                     |
++---------------------------+----------------------------+-----------------------+
+| \(2\) Confounder          | Y \~ X + Z                 | 0.5                   |
++---------------------------+----------------------------+-----------------------+
+| \(3\) Mediator            | Direct effect: Y \~ X + Z  | Direct effect: 0      |
+|                           |                            |                       |
+|                           | Total Effect: Y \~ X       | Total effect: 1       |
++---------------------------+----------------------------+-----------------------+
+| \(4\) M-Bias              | Y \~ X                     | 1                     |
++---------------------------+----------------------------+-----------------------+
+
+: Correct causal models and causal effects for each data generating mechanism. {#tbl-1}
+
+```{r}
+#| label: tbl-2
+#| tbl-cap: "Coefficients for the exposure under each data generating mechanism depending on the model fit as well as the correlation between $X$ and $Z$."
+d %>%
+  nest_by(type) %>%
+  mutate(`Y ~ X` = round(coef(lm(y ~ x, data = data))[2], 2),
+         `Y ~ X + Z` = round(coef(lm(y ~ x + z, data = data))[2], 2),
+         `Correlation of X and Z` = round(cor(data$x, data$z), 2)) %>%
+  select(-data, `Data generating mechanism` = type) %>%
+  knitr::kable()
+
+```
+
+## Discussion
+
+Here we have demonstrated that when presented with an exposure, outcome, and some measured factors, statistics alone, whether summary statistics or data visualizations, are not sufficient to determine the appropriate causal estimate. Additional information about the data generating mechanism is needed in order to draw the correct conclusions.
