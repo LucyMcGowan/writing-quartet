@@ -217,7 +217,7 @@ d_conf %>%
 
 ```{r}
 n <- 100
-set.seed(26775)
+set.seed(1331)
 
 confounding <- tibble(
   z = rnorm(n),
@@ -235,7 +235,7 @@ collider <- tibble(
   z = 0.45 * x + 0.77 * y + rnorm(n)
 )
 
-set.seed(44433)
+set.seed(207052)
 
 mediator <- tibble(
   x = rnorm(n),
