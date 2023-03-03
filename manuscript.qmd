@@ -298,3 +298,33 @@ d %>%
 ## Discussion
 
 Here we have demonstrated that when presented with an exposure, outcome, and some measured factors, statistics alone, whether summary statistics or data visualizations, are not sufficient to determine the appropriate causal estimate. Additional information about the data generating mechanism is needed in order to draw the correct conclusions.
+
+## Appendix
+
+R code to generate the tables and figures:
+
+```{r}
+#| eval: false
+#| echo: true
+library(tidyverse)
+# devtools::install_github("LucyMcGowan/causalquartet")
+library(causalquartet)
+
+## Figure 2
+
+ggplot(causalquartet, aes(x = x, y = y)) +
+  geom_point() + 
+  geom_smooth(method = "lm", formula = "y ~ x") +
+  facet_wrap(~type)
+
+## Table 2
+
+causalquartet %>%
+  nest_by(type) %>%
+  mutate(`Y ~ X` = round(coef(lm(y ~ x, data = data))[2], 2),
+         `Y ~ X + Z` = round(coef(lm(y ~ x + z, data = data))[2], 2),
+         `Correlation of X and Z` = round(cor(data$x, data$z), 2)) %>%
+  select(-data, `Data generating mechanism` = type) %>%
+  knitr::kable()
+```
+
