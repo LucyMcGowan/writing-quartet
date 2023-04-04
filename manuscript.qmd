@@ -56,7 +56,7 @@ geom_dag_label_repel <- function(..., seed = 10) {
 
 Anscombe's quartet is a set of four datasets that have the same statistical properties in terms of summary statistics (means, variances, correlations, and linear regression fits), but exhibit different distributions and relationships when plotted on a graph [@anscombe1973graphs]. The quartet, often used to teach introductory statistics courses, was created to illustrate the importance of visualizing data before drawing conclusions based on statistical analyses alone. Here, we propose a different quartet, where again statistical summaries do not provide insight into the true underlying mechanism, but even visualizations do not solve the issue. In these examples an understanding or assumption of the data generating mechanism is required to correctly capture the relationship between the available factors. This proposed quartet is meant to help practitioners better understand the assumptions underlying causal inference methods, further driving home the point that in order to accurately estimate causal effects we require more information than can be gleaned from statistical tools alone.
 
-The data generated to create the figures displayed here are included in an R package titled `causalquartet`.
+The data generated to create the figures displayed here are included in an R package titled `quartet`.
 
 ## Methods
 
@@ -321,23 +321,23 @@ R code to generate the tables and figures:
 #| eval: false
 #| echo: true
 library(tidyverse)
-# devtools::install_github("LucyMcGowan/causalquartet")
-library(causalquartet)
+# devtools::install_github("LucyMcGowan/quartet")
+library(quartet)
 
 ## Figure 2
 
-ggplot(causalquartet, aes(x = x, y = y)) +
+ggplot(causal_quartet, aes(x = x, y = y)) +
   geom_point() + 
   geom_smooth(method = "lm", formula = "y ~ x") +
-  facet_wrap(~type)
+  facet_wrap(~dataset)
 
 ## Table 2
 
-causalquartet %>%
-  nest_by(type) %>%
+causal_quartet %>%
+  nest_by(dataset) %>%
   mutate(`Y ~ X` = round(coef(lm(y ~ x, data = data))[2], 2),
          `Y ~ X + Z` = round(coef(lm(y ~ x + z, data = data))[2], 2),
          `Correlation of X and Z` = round(cor(data$x, data$z), 2)) %>%
-  select(-data, `Data generating mechanism` = type) %>%
+  select(-data, `Data generating mechanism` = dataset) %>%
   knitr::kable()
 ```
