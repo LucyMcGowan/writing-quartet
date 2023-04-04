@@ -118,6 +118,13 @@ library(tidyverse)
 library(ggokabeito)
 library(patchwork)
 
+expander <- function() {
+  expand_plot(
+    expand_x = expansion(c(0.01, 0.05)), 
+    expand_y = expansion(c(0.2, 0.2))
+  )
+}
+
 coords <- list(
   x = c(X = 2, Z = 1, Y = 3),
   y = c(X = 1, Z = 1.1, Y = 1)
@@ -181,7 +188,8 @@ d_mbias %>%
   geom_dag_text() +
   theme_dag() +
   coord_cartesian(clip = "off") +
-  ggtitle("(4) M-bias") -> p_m_bias
+  ggtitle("(4) M-bias") +
+  expander() -> p_m_bias
 
 d_coll %>%
   tidy_dagitty() %>%
@@ -193,7 +201,8 @@ d_coll %>%
   geom_dag_text() +
   theme_dag() +
   coord_cartesian(clip = "off") +
-  ggtitle("(1) Collider") -> p_coll
+  ggtitle("(1) Collider") +
+  expander()  -> p_coll
 
 d_med %>%
   tidy_dagitty() %>%
@@ -205,7 +214,8 @@ d_med %>%
   geom_dag_text() +
   theme_dag() +
   coord_cartesian(clip = "off") + 
-  ggtitle("(3) Mediator") -> p_med
+  ggtitle("(3) Mediator") +
+  expander()  -> p_med
 
 d_conf %>%
   tidy_dagitty() %>%
@@ -217,60 +227,30 @@ d_conf %>%
   geom_dag_text() +
   theme_dag() +
   coord_cartesian(clip = "off") + 
-  ggtitle("(2) Confounder") -> p_conf
+  ggtitle("(2) Confounder") + 
+  expander() -> p_conf
 
-(p_coll + p_conf) /  (p_med + p_m_bias)  
-```
-
-```{r}
-n <- 100
-set.seed(1331)
-
-confounding <- tibble(
-  z = rnorm(n),
-  x = z + rnorm(n),
-  y = 0.5 * x + z + rnorm(n)
-)
-
-
-
-set.seed(229655)
-
-collider <- tibble(
-  x = rnorm(n),
-  y = x + rnorm(n),
-  z = 0.45 * x + 0.77 * y + rnorm(n)
-)
-
-set.seed(207052)
-
-mediator <- tibble(
-  x = rnorm(n),
-  z = x + rnorm(n),
-  y = z + rnorm(n)
-)
-
-set.seed(839)
-
-m_bias <- tibble(
-  u1 = rnorm(n),
-  u2 = rnorm(n),
-  z = 8 * u1 + u2 + rnorm(n),
-  x = u1 + rnorm(n, sd = 1),
-  y =  x + u2 + rnorm(n, sd = 1)
-)
-
-d <- bind_rows(confounding, collider, mediator, m_bias) %>%
-  mutate(type = rep(c("(2) Confounder", "(1) Collider", "(3) Mediator", "(4) M-Bias"), each = 100))
+(p_coll + plot_spacer() + p_conf) /  (p_med + plot_spacer() + p_m_bias)  
 ```
 
 ```{r}
 #| fig-cap: "100 points generated using the data generating mechanisms specified (1) Collider (2) Confounder (3) Mediator (4) M-Bias. The blue line displays a linear regression fit estimating the relationship between X and Y, in each case the slope is 1. "
 #| label: fig-2
-ggplot(d, aes(x = x, y = y)) +
-  geom_point() + 
-  geom_smooth(method = "lm", formula = "y ~ x") +
-  facet_wrap(~type)
+library(tidyverse)
+# devtools::install_github("LucyMcGowan/quartet")
+library(quartet)
+
+## Figure 2
+
+ggplot(causal_quartet, aes(x = x, y = y)) +
+  geom_point(alpha = 0.25) + 
+  geom_smooth(
+    method = "lm", 
+    formula = "y ~ x", 
+    linesize = 1.1, 
+    color = "steelblue"
+  ) +
+  facet_wrap(~dataset)
 ```
 
 +---------------------------+---------------------------+-----------------------+
@@ -292,14 +272,16 @@ ggplot(d, aes(x = x, y = y)) +
 ```{r}
 #| label: tbl-2
 #| tbl-cap: "Coefficients for the exposure under each data generating mechanism depending on the model fit as well as the correlation between $X$ and $Z$."
-d %>%
-  nest_by(type) %>%
+
+## Table 2
+
+causal_quartet %>%
+  nest_by(dataset) %>%
   mutate(`Y ~ X` = round(coef(lm(y ~ x, data = data))[2], 2),
          `Y ~ X + Z` = round(coef(lm(y ~ x + z, data = data))[2], 2),
          `Correlation of X and Z` = round(cor(data$x, data$z), 2)) %>%
-  select(-data, `Data generating mechanism` = type) %>%
+  select(-data, `Data generating mechanism` = dataset) %>%
   knitr::kable()
-
 ```
 
 ## Discussion
@@ -320,24 +302,5 @@ R code to generate the tables and figures:
 ```{r}
 #| eval: false
 #| echo: true
-library(tidyverse)
-# devtools::install_github("LucyMcGowan/quartet")
-library(quartet)
-
-## Figure 2
-
-ggplot(causal_quartet, aes(x = x, y = y)) +
-  geom_point() + 
-  geom_smooth(method = "lm", formula = "y ~ x") +
-  facet_wrap(~dataset)
-
-## Table 2
-
-causal_quartet %>%
-  nest_by(dataset) %>%
-  mutate(`Y ~ X` = round(coef(lm(y ~ x, data = data))[2], 2),
-         `Y ~ X + Z` = round(coef(lm(y ~ x + z, data = data))[2], 2),
-         `Correlation of X and Z` = round(cor(data$x, data$z), 2)) %>%
-  select(-data, `Data generating mechanism` = dataset) %>%
-  knitr::kable()
+#| ref.label: ["fig-2", "tbl-2"]
 ```
