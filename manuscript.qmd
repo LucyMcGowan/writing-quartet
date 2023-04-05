@@ -1,6 +1,8 @@
 ---
 title: "Causal inference is not a statistical problem"
-author: "Lucy D'Agostino McGowan"
+author: 
+ - "Lucy D'Agostino McGowan"
+ - "Malcolm Barrett"
 format: pdf
 execute: 
   echo: false
