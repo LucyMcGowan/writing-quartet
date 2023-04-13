@@ -59,13 +59,17 @@ geom_dag_label_repel <- function(..., seed = 10) {
 
 ## Abstract
 
-This paper introduces a collection of four data sets, similar to Anscombe's Quartet, that aim to highlight the challenges involved when estimating causal effects. Each of the four data sets is generated based on a distinct causal mechanism: the first involves a collider, the second involves a confounder, the third involves a mediator, and the fourth involves the induction of M-Bias by an included factor. The paper includes a mathematical summary of each data set, as well as directed acyclic graphs that depict the relationships between the variables. Despite the fact that the statistical summaries and visualizations for each data set are identical, the true causal effect differs, and estimating it correctly requires knowledge of the data-generating mechanism. These example data sets can help practitioners gain a better understanding of the assumptions underlying causal inference methods and emphasize the importance of gathering more information beyond what can be obtained from statistical tools alone. The paper also includes R code for reproducing all figures and provides access to the data sets themselves through an R package named quartet. 
+This paper introduces a collection of four data sets, similar to Anscombe's Quartet, that aim to highlight the challenges involved when estimating causal effects. Each of the four data sets is generated based on a distinct causal mechanism: the first involves a collider, the second involves a confounder, the third involves a mediator, and the fourth involves the induction of M-Bias by an included factor. The paper includes a mathematical summary of each data set, as well as directed acyclic graphs that depict the relationships between the variables. Despite the fact that the statistical summaries and visualizations for each data set are identical, the true causal effect differs, and estimating it correctly requires knowledge of the data-generating mechanism. These example data sets can help practitioners gain a better understanding of the assumptions underlying causal inference methods and emphasize the importance of gathering more information beyond what can be obtained from statistical tools alone. The paper also includes R code for reproducing all figures and provides access to the data sets themselves through an R package named quartets. 
 
 ## Introduction
 
 Anscombe's quartet is a set of four data sets with the same summary statistics (means, variances, correlations, and linear regression fits) but exhibit different distributions and relationships when plotted on a graph [@anscombe1973graphs]. Often used to teach introductory statistics courses, Anscombe created the quartet to illustrate the importance of visualizing data before drawing conclusions based on statistical analyses alone. Here, we propose a different quartet, where statistical summaries do not provide insight into the underlying mechanism, but even visualizations do not solve the issue. In these examples, an understanding or assumption of the data-generating mechanism is required to capture the relationship between the available factors correctly. This proposed quartet can help practitioners better understand the assumptions underlying causal inference methods, further driving home the point that we require more information than can be gleaned from statistical tools alone to estimate causal effects accurately.
 
-The data generated to create the figures displayed here are available in an R package titled `quartet` [@quartet].
+The data generated to create the figures displayed here are available in an R package titled `quartets` [@quartet].
+
+## Causal inference primer
+
+In causal inference, we are often trying to estimate the effect of some exposure, $X$, on some outcome $Y$. One framework we use to think through this problem is the "potential outcomes" framework [@rubin1974estimating]. Here, you can imagine that each individual has a set of potential outcomes under each possible exposure value. For example, if there are two levels of exposure (exposed: 1 and unexposed: 0), we could have the potential outcome under exposure ($Y(1)$) and the potential outcome under no exposure ($Y(0)$) and look at the difference between these, $Y(1) - Y(0)$ to understand the impact on the exposure on the outcome, $Y$. Of course, at any moment in time, only one of these potential outcomes is observable, the potential outcome corresponding to the exposure the individual actually experienced. Under certain assumptions, we can borrow information from individuals who have received different exposures to compare the average difference between their observed outcomes. We make the assumption that one individual's exposure does not impact the outcome of any other individual. We assume that everyone has a non-zero probability of having each level of the exposure. And finally, we assume that the potential outcomes are independent of the exposure level given the observed covariate(s) *that are adjusted for*. The purpose of this paper is to focus on this $Z$. Given you have three variables, an exposure, $X$, an outcome, $Y$, and some measured factor, $Z$, how do you decide whether you should estimate the average treatment effect adjusting for $Z$?
 
 ## Methods
 
@@ -87,7 +91,7 @@ $$
 \begin{split}
 Z &\sim N(0, 1)\\
 X &= Z + \varepsilon_x,\textrm{ }\varepsilon_x\sim N(0, 1)\\
-Y &=  0.5Z + \varepsilon_y, \textrm{ }\varepsilon_y\sim N(0, 1)
+Y &=  0.5X + Z + \varepsilon_y, \textrm{ }\varepsilon_y\sim N(0, 1)
 \end{split}
 $$ {#eq-conf}
 
@@ -113,9 +117,9 @@ Y &=  X + U_2 + \varepsilon_y, \textrm{ }\varepsilon_y\sim N(0, 1)
 \end{split}
 $$ {#eq-mbias}
 
-In each of these scenarios, a linear model fit to estimate the relationship between $X$ and $Y$ with no further adjustment will result in a $\hat\beta$ coefficient of 1. The correlation between $X$ and the additional known factor $Z$ is also 0.70.
+In each of these scenarios, a linear model fit to estimate the relationship between $X$ and $Y$ with no further adjustment will result in a $\hat\beta$ coefficient of 1. Or, equivalently, the estimated average treatment effect (ATE) without adjusting for $Z$ is 1. The correlation between $X$ and the additional known factor $Z$ is also 0.70.
 
-We have simulated 100 data points from each of the four mechanisms; we display each in @fig-2. This set of figures demonstrates that despite the very different data-generating mechanisms, there is no clear way to determine the "appropriate" way to model the effect of the exposure $X$ and the outcome $Y$ without additional information. For example, the unadjusted models are displayed in @fig-2, showing a relationship between $X$ and $Y$ of 1. The unadjusted models are the correct causal model for data-generating mechanisms (1) and (4); however, it overstates the effect of $X$ for data-generating mechanism (2) and describes the total effect of $X$ on $Y$ for data-generating mechanism (3), but not the direct effect (@tbl-1). Even examining the correlation between $X$ and the known factor $Z$ does not help us determine whether adjusting for $Z$ is appropriate, as it is 0.7 in all cases (@tbl-2).
+We have simulated 100 data points from each of the four mechanisms; we display each in @fig-2. This set of figures demonstrates that despite the very different data-generating mechanisms, there is no clear way to determine the "appropriate" way to model the effect of the exposure $X$ and the outcome $Y$ without additional information. For example, the unadjusted models are displayed in @fig-2, showing a relationship between $X$ and $Y$ of 1. The unadjusted models are the correct causal model for data-generating mechanisms (1) and (4); however, it overstates the effect of $X$ for data-generating mechanism (2) and describes the total effect of $X$ on $Y$ for data-generating mechanism (3), but not the direct effect (@tbl-1). Even examining the correlation between $X$ and the known factor $Z$ does not help us determine whether adjusting for $Z$ is appropriate, as it is 0.7 in all cases (@tbl-2). The four datasets are available for use in the `quartets` R package [@quartet].
 
 ```{r}
 #| label: fig-1
@@ -123,9 +127,7 @@ We have simulated 100 data points from each of the four mechanisms; we display e
 #| fig-height: 6
 
 library(ggdag)
-library(tidyverse)
 library(ggokabeito)
-library(patchwork)
 
 expander <- function() {
   expand_plot(
@@ -187,55 +189,63 @@ d_mbias <- dagify(
   coords = coords
 )
 
-d_mbias %>%
-  tidy_dagitty() %>%
+d_mbias |>
+  tidy_dagitty() |>
   ggplot(
     aes(x = x, y = y, xend = xend, yend = yend)
   ) +
-  geom_dag_point() +
+  geom_dag_point(aes(color = label)) +
   geom_dag_edges() +
   geom_dag_text() +
   theme_dag() +
   coord_cartesian(clip = "off") +
+  scale_color_manual(values = c("#A8CF9E", "#51c1ad", "#357edd")) +
   ggtitle("(4) M-bias") +
+  theme(legend.position = "none") +
   expander() -> p_m_bias
 
-d_coll %>%
-  tidy_dagitty() %>%
+d_coll |>
+  tidy_dagitty() |>
   ggplot(
     aes(x = x, y = y, xend = xend, yend = yend)
   ) +
-  geom_dag_point() +
+  geom_dag_point(aes(color = label)) +
   geom_dag_edges() +
   geom_dag_text() +
   theme_dag() +
   coord_cartesian(clip = "off") +
+  scale_color_manual(values = c("#A8CF9E", "#51c1ad", "#357edd")) +
+  theme(legend.position = "none") +
   ggtitle("(1) Collider") +
   expander()  -> p_coll
 
-d_med %>%
-  tidy_dagitty() %>%
+d_med |>
+  tidy_dagitty() |>
   ggplot(
     aes(x = x, y = y, xend = xend, yend = yend)
   ) +
-  geom_dag_point() +
+  geom_dag_point(aes(color = label)) +
   geom_dag_edges() +
   geom_dag_text() +
   theme_dag() +
-  coord_cartesian(clip = "off") + 
+  coord_cartesian(clip = "off") +
+  scale_color_manual(values = c("#A8CF9E", "#51c1ad", "#357edd")) +
+  theme(legend.position = "none") +
   ggtitle("(3) Mediator") +
   expander()  -> p_med
 
-d_conf %>%
-  tidy_dagitty() %>%
+d_conf |>
+  tidy_dagitty() |>
   ggplot(
     aes(x = x, y = y, xend = xend, yend = yend)
   ) +
-  geom_dag_point() +
+  geom_dag_point(aes(color = label)) +
   geom_dag_edges() +
   geom_dag_text() +
   theme_dag() +
-  coord_cartesian(clip = "off") + 
+  coord_cartesian(clip = "off") +
+  scale_color_manual(values = c("#A8CF9E", "#51c1ad", "#357edd")) +
+  theme(legend.position = "none") +
   ggtitle("(2) Confounder") + 
   expander() -> p_conf
 
@@ -246,17 +256,17 @@ d_conf %>%
 #| fig-cap: "100 points generated using the data generating mechanisms specified (1) Collider (2) Confounder (3) Mediator (4) M-Bias. The blue line displays a linear regression fit estimating the relationship between X and Y; in each case, the slope is 1. "
 #| label: fig-2
 library(tidyverse)
-# devtools::install_github("LucyMcGowan/quartet")
-library(quartet)
+# devtools::install_github("r-causal/quartets")
+library(quartets)
 
 ## Figure 2
 
-ggplot(causal_quartet, aes(x = x, y = y)) +
+ggplot(causal_quartet, aes(x = exposure, y = outcome)) +
   geom_point(alpha = 0.25) + 
   geom_smooth(
     method = "lm", 
     formula = "y ~ x", 
-    linesize = 1.1, 
+    linewidth = 1.1, 
     color = "steelblue"
   ) +
   facet_wrap(~dataset)
@@ -278,26 +288,137 @@ ggplot(causal_quartet, aes(x = x, y = y)) +
 
 : Correct causal models and causal effects for each data-generating mechanism. {#tbl-1}
 
+
 ```{r}
 #| label: tbl-2
 #| tbl-cap: "Coefficients for the exposure under each data generating mechanism depending on the model fit as well as the correlation between $X$ and $Z$."
 
 ## Table 2
 
-causal_quartet %>%
-  nest_by(dataset) %>%
-  mutate(`Y ~ X` = round(coef(lm(y ~ x, data = data))[2], 2),
-         `Y ~ X + Z` = round(coef(lm(y ~ x + z, data = data))[2], 2),
-         `Correlation of X and Z` = round(cor(data$x, data$z), 2)) %>%
-  select(-data, `Data generating mechanism` = dataset) %>%
-  knitr::kable()
+causal_quartet |>
+  nest_by(dataset) |>
+  mutate(`ATE not adjusting for Z` = round(coef(lm(outcome ~ exposure, data = data))[2], 2),
+         `ATE adjusting for Z` = round(coef(lm(outcome ~ exposure + covariate, data = data))[2], 2),
+         `Correlation of X and Z` = round(cor(data$exposure, data$covariate), 2)) |>
+  select(-data, dataset) |>
+  knitr::kable("latex", 
+               booktabs = TRUE,
+               escape = FALSE, 
+               col.names = 
+                 kableExtra::linebreak(c("Data generating mechanism", 
+                                         "ATE\nnot adjusting for Z", 
+                                         "ATE\nadjusting for Z", 
+                                         "Correlation of\nX and Z"), align = "c")) 
 ```
 
+## The Solution
+
+Here we have demonstrated that when presented with an exposure, outcome, and some measured factors, statistics alone, whether summary statistics or data visualizations are insufficient to determine the appropriate causal estimate. Analysts need additional information about the data generating mechanism to draw the correct conclusions. While knowledge of the data generating process is necessary to estimate the correct causal effect in each of the cases presented, an analyst can take steps to make mistakes such as those shown here less likely. The first is discussing understood mechanisms with content matter experts before estimating causal effects. Drawing the proposed relationships via causal diagrams such as the directed acyclic graphs shown in @fig-1 before calculating any statistical quantities can help the analyst ensure they are only adjusting for factors that meet the "backdoor criterion," that is, adjusting for only factors that close all backdoor paths between the exposure and outcome of interest [@pearl2000causality]. 
+
+```{r}
+#| label: fig-3
+#| fig-cap: "Time-ordered collider DAG where each factor is measured twice. $X$ is the exposure, $Y$ is the outcome, and $Z$ is the measured factor. The highlighted $Z$ node indicates which time point is being adjusted for when estimating the average treatment effect of the highlighted $X$ on the highlighted $Y$"
+#| fig-subcap: 
+#|   - "Adjusting for $Z$ as shown here would induce collider bias."
+#|   - "Adjusting for this pre-exposure $Z$ as shown here would **not** induce collider bias."
+#| layout-ncol: 2
+coords <- list(
+  x = c(X_0 = 1, X_1 = 2, Z_1 = 2, Y_1 = 1.9, X_2 = 3, Y_2 = 2.9, Z_2 = 3,
+        X_3 = 4, Y_3 = 3.9, Z_3 = 4),
+  y = c(X_0 = 1, Y_0 = 1.05,
+        X_1 = 1, Z_1 = 1.1, Y_1 = 1.05,
+        X_2 = 1, Z_2 = 1.1, Y_2 = 1.05,
+        X_3 = 1, Z_3 = 1.1, Y_3 = 1.05)
+)
+d_coll <- dagify(
+  Y_2 ~ X_1,
+  Y_3 ~ X_2,
+  X_2 ~ X_1,
+  Z_2 ~ X_1 + Y_2,
+  Z_3 ~ X_2 + Y_3 + Z_2,
+  exposure = "X_2",
+  outcome = "Y_3",
+  labels = c(X_0 = "X",
+             X_1 = "X",
+             X_2 = "X",
+             X_3 = "X",
+             Y_0 = "Y",
+             Y_1 = "Y",
+             Y_2 = "Y",
+             Y_3 = "Y",
+             Z_1 = "Z",
+             Z_2 = "Z",
+             Z_3 = "Z"),
+  coords = coords
+)
+
+d_coll |>
+  tidy_dagitty() |>
+  mutate(color = case_when(
+    !(name %in% c("X_2", "Y_3", "Z_3")) ~ "grey",
+    TRUE ~ label)) |>
+  ggplot(
+    aes(x = x, y = y, xend = xend, yend = yend)
+  ) +
+  geom_dag_point(aes(color = color)) +
+  geom_dag_edges() +
+  geom_dag_text(aes(label = label)) +
+  theme_dag() +
+  coord_cartesian(clip = "off")  +
+  scale_color_manual(values = c("lightgrey", "#A8CF9E", "#51c1ad", "#357edd")) +
+  theme(legend.position = "none") + 
+  geom_vline(xintercept = c(2.6, 3.25, 3.6, 4.25), lty = 2) + 
+  annotate("label", x = 2.925, y = 0.97, label = "baseline") + 
+  annotate("label", x = 3.925, y = 0.97, label = "follow-up")
+
+d_coll |>
+  tidy_dagitty() |>
+  mutate(color = case_when(
+    !(name %in% c("X_2", "Y_3", "Z_2")) ~ "grey",
+    TRUE ~ label)) |>
+  ggplot(
+    aes(x = x, y = y, xend = xend, yend = yend)
+  ) +
+  geom_dag_point(aes(color = color)) +
+  geom_dag_edges() +
+  geom_dag_text(aes(label = label)) +
+  theme_dag() +
+  coord_cartesian(clip = "off")  +
+  scale_color_manual(values = c("lightgrey", "#A8CF9E", "#51c1ad", "#357edd")) +
+  theme(legend.position = "none") + 
+  geom_vline(xintercept = c(2.6, 3.25, 3.6, 4.25), lty = 2) + 
+  annotate("label", x = 2.925, y = 0.97, label = "baseline") + 
+  annotate("label", x = 3.925, y = 0.97, label = "follow-up")
+```
+
+Absent subject matter expertise, the analyst can at least consider the time ordering of the available factors. Fundamental principles of causal inference dictate that the exposure of interest must precede the outcome of interest to establish a causal relationship plausibly. In addition, to account for potential confounding, any covariates adjusted for in the analysis must precede the exposure in time. Including this additional timing information would omit the potential for two of the three misspecified models above (@eq-col the "collider" and @eq-med the "mediator") as the former would demonstrate that the factor $Z$ falls after both the exposure and outcome and the latter would show that the factor $Z$ falls between the exposure and the outcome in time. For example, if we drew the second panel of @fig-1 (the Collider) as a time ordered DAG, we would see something like @fig-3. If we carefully adjust only for factors that are measured pre-exposure, we would not induce the bias we see in @tbl-2 (@fig-3-2). The Causal Quartets data sets are accompanied by a set of four data sets with time-varying measures for each of the factors, $X$, $Y$, and $Z$, generated under the same data generating mechanisms. Here, as long as a pre-exposure measure of $Z$ is adjusted for, the correct causal effect is estimated in all scenarios except M-Bias (@tbl-3).
+
+```{r}
+#| label: tbl-3
+#| tbl-cap: "Coefficients for the exposure under each data generating mechanism depending on the model fit as well as the correlation between $X$ and $Z$."
+
+## Table 3
+
+causal_quartet_time |>
+  nest_by(dataset) |>
+  mutate(`ATE not adjusting for Z` = round(coef(lm(outcome_followup ~ exposure_baseline, data = data))[2], 2),
+         `ATE adjusting for Z` = round(coef(lm(outcome_followup ~ exposure_baseline + covariate_baseline, data = data))[2], 2)) |>
+  bind_cols(tibble(truth = c(1, 0.5, 1, 1))) |>
+  select(-data, dataset) |>
+  knitr::kable("latex", 
+               booktabs = TRUE,
+               escape = FALSE, 
+               col.names = 
+                 kableExtra::linebreak(c("Data generating mechanism", 
+                                         "ATE\nnot adjusting for\npre-exposure Z", 
+                                         "ATE\nadjusting for\npre-exposure Z",
+                                         "Correct causal effect"), align = "c"),
+               digits = 2) 
+```
+
+Adjusting for only pre-exposure factors is widely recommended. The only exception is when a known confounder is only measured after the exposure in a particular data analysis, in which case some experts recommend adjusting for it. Still, even then, caution is advised [@groenwold2021adjust]. Many causal inference methodologists would recommend conditioning on *all* measured pre-exposure factors [@rosenbaumconstructing; @rubin2009should; @rubin1996matching; @rubin2008objective]. Including timing information alone (and thus adjusting for all pre-exposure factors) does not preclude one from mistakenly fitting the adjusted model under the fourth data generating mechanism (M-bias), as $Z$ can fall temporally before $X$ and $Y$ and still induce bias. It has been argued, however, that this strict M-bias (e.g., where $U_1$ and $U_2$ in @eq-mbias have no relationship with each other and $Z$ has no relationship with $X$ or $Y$ other than via $U_1$ and $U_2$) is very rare in most practical settings [@liu2012implications; @rubin2009should; @gelman2011causality]. Indeed, even theoretical results have demonstrated that bias induced by this data generating mechanism is sensitive to any deviations from this form [@ding2015adjust].
+
 ## Discussion
-
-Here we have demonstrated that when presented with an exposure, outcome, and some measured factors, statistics alone, whether summary statistics or data visualizations are insufficient to determine the appropriate causal estimate. Analysts need additional information about the data generating mechanism to draw the correct conclusions. While knowledge of the data generating process is necessary to estimate the correct causal effect in each of the cases presented, an analyst can take steps to make mistakes such as those shown here less likely. The first is discussing understood mechanisms with content matter experts before estimating causal effects. Drawing the proposed relationships via causal diagrams such as the directed acyclic graphs shown in @fig-1 before calculating any statistical quantities can help the analyst ensure they are only adjusting for factors that meet the "backdoor criterion," that is, adjusting for only factors that close all backdoor paths between the exposure and outcome of interest [@pearl2000causality]. Absent subject matter expertise, the analyst can at least consider the time ordering of the available factors. Fundamental principles of causal inference dictate that the exposure of interest must precede the outcome of interest to establish a causal relationship plausibly. In addition, to account for potential confounding, any covariates adjusted for in the analysis must precede the exposure in time. Including this additional timing information would omit the potential for two of the three misspecified models above (@eq-col the "collider" and @eq-med the "mediator") as the former would demonstrate that the factor $Z$ falls after both the exposure and outcome and the latter would show that the factor $Z$ falls between the exposure and the outcome in time.
-
-Adjusting for only pre-exposure factors is widely recommended. The only exception is when a known confounder is only measured after the exposure in a particular data analysis, in which case some experts recommend adjusting for it. Still, even then, caution is advised [@groenwold2021adjust]. Many causal inference methodologists would recommend conditioning on *all* measured pre-exposure factors [@rosenbaumconstructing; @rubin2009should; @rubin1996matching; @rubin2008objective]. Including timing information alone (and thus adjusting for all pre-exposure factors) does not preclude one from mistakenly fitting the adjusted model under the fourth data generating mechanism (M-bias), as $Z$ can fall temporally before $X$ and $Y$ and still induce bias. It has been argued, however, that this strict M-bias (e.g., where $U_1$ and $U_2$ in @eq-mbias have no relationship with each other and $Z$ has no relationship with $X$ or $Y$ other than via $U_1$ and $U_2$) is very rare in most practical settings [@liu2012implications; @rubin2009should; @gelman2011causality]. Indeed, even theoretical results have demonstrated that bias induced by this data generating mechanism is sensitive to any deviations from this form [@ding2015adjust]. 
 
 The use of small sets of data to demonstrate a key concept in the spirit of Anscombe's Quartet has been applied to a wide variety of data analytic problems. Recent examples include an extension of the original idea proposed by Anscombe called the "Datasaurus Dozen" [@matejka2017same], an exploration of varying interaction effects [@rohrer2021precise], a quartet of model types fit to the same data that yield the same performance metrics but fit very different underlying mechanisms [@biecek2023performance], and a set of conceptual causal quartets that highlight the impact of treatment heterogeneity on the average treatment effect [@gelman2023causal]. While similar in name, the conceptual causal quartets are different from what we present here as they provide excellent insight into how variation in a treatment effect / treatment  heterogeneity can impact an average treatment effect (by plotting the latent true causal effect). We believe both sets provide important and complementary understanding for data analysis practitioners.
 
