@@ -2,6 +2,7 @@
 title: "Causal inference is not a statistical problem"
 author: 
  - "Lucy D'Agostino McGowan"
+ - "Travis Gerke"
  - "Malcolm Barrett"
 format: 
   pdf:
@@ -69,7 +70,7 @@ The data generated to create the figures displayed here are available in an R pa
 
 ## Causal inference primer
 
-In causal inference, we are often trying to estimate the effect of some exposure, $X$, on some outcome $Y$. One framework we use to think through this problem is the "potential outcomes" framework [@rubin1974estimating]. Here, you can imagine that each individual has a set of potential outcomes under each possible exposure value. For example, if there are two levels of exposure (exposed: 1 and unexposed: 0), we could have the potential outcome under exposure ($Y(1)$) and the potential outcome under no exposure ($Y(0)$) and look at the difference between these, $Y(1) - Y(0)$ to understand the impact on the exposure on the outcome, $Y$. Of course, at any moment in time, only one of these potential outcomes is observable, the potential outcome corresponding to the exposure the individual actually experienced. Under certain assumptions, we can borrow information from individuals who have received different exposures to compare the average difference between their observed outcomes. We make the assumption that one individual's exposure does not impact the outcome of any other individual. We assume that everyone has a non-zero probability of having each level of the exposure. And finally, we assume that the potential outcomes are independent of the exposure level given the observed covariate(s) *that are adjusted for*. The purpose of this paper is to focus on this $Z$. Given you have three variables, an exposure, $X$, an outcome, $Y$, and some measured factor, $Z$, how do you decide whether you should estimate the average treatment effect adjusting for $Z$?
+In causal inference, we are often trying to estimate the effect of some exposure, $X$, on some outcome $Y$. One framework we use to think through this problem is the "potential outcomes" framework [@rubin1974estimating]. Here, you can imagine that each individual has a set of potential outcomes under each possible exposure value. For example, if there are two levels of exposure (exposed: 1 and unexposed: 0), we could have the potential outcome under exposure ($Y(1)$) and the potential outcome under no exposure ($Y(0)$) and look at the difference between these, $Y(1) - Y(0)$ to understand the impact on the exposure on the outcome, $Y$. Of course, at any moment in time, only one of these potential outcomes is observable, the potential outcome corresponding to the exposure the individual actually experienced. Under certain assumptions, we can borrow information from individuals who have received different exposures to compare the average difference between their observed outcomes. We make the assumption that one individual's exposure does not impact the outcome of any other individual. We assume that everyone has a some chance of having each level of the exposure. And finally, we assume that the exposure the person receives has nothing to do with how we think it will effect them after adjusting for a set of observed covariates. In other words, the potential outcomes are independent of the exposure value the individual happened to experience given the covariate(s) *that are adjusted for* in our modeling process. We *do* assume of course that the exposure itself may cause the outcome, but we assume that the *assignment* to a specific exposure value for a given individual is independent of their outcome. The easiest way to think about this is the best case scenario for estimating causal effects where the exposure is *randomly assigned* to each individual, ensuring that this assumption is true without the need to adjust for any other factors. In non-randomized settings, we likely need to adjust for other factors to satisfy this independence. The problem is identifying which factors are required, as adjusting for all observed factors may not be appropriate (and some may even give you the wrong effect). The purpose of this paper is to focus on the observed covariates, $Z$. Given you have three variables, an exposure, $X$, an outcome, $Y$, and some measured factor, $Z$, how do you decide whether you should estimate the average treatment effect adjusting for $Z$?
 
 ## Methods
 
@@ -256,7 +257,7 @@ d_conf |>
 #| fig-cap: "100 points generated using the data generating mechanisms specified (1) Collider (2) Confounder (3) Mediator (4) M-Bias. The blue line displays a linear regression fit estimating the relationship between X and Y; in each case, the slope is 1. "
 #| label: fig-2
 library(tidyverse)
-# devtools::install_github("r-causal/quartets")
+# install.packages("quartets")
 library(quartets)
 
 ## Figure 2
@@ -277,16 +278,16 @@ ggplot(causal_quartet, aes(x = exposure, y = outcome)) +
 +===========================+===========================+=======================+
 | \(1\) Collider            | Y \~ X                    | 1                     |
 +---------------------------+---------------------------+-----------------------+
-| \(2\) Confounder          | Y \~ X + Z                | 0.5                   |
+| \(2\) Confounder          | Y \~ X ; Z                | 0.5                   |
 +---------------------------+---------------------------+-----------------------+
-| \(3\) Mediator            | Direct effect: Y \~ X + Z | Direct effect: 0      |
+| \(3\) Mediator            | Direct effect: Y \~ X ; Z | Direct effect: 0      |
 |                           |                           |                       |
 |                           | Total Effect: Y \~ X      | Total effect: 1       |
 +---------------------------+---------------------------+-----------------------+
 | \(4\) M-Bias              | Y \~ X                    | 1                     |
 +---------------------------+---------------------------+-----------------------+
 
-: Correct causal models and causal effects for each data-generating mechanism. {#tbl-1}
+: Correct causal models and causal effects for each data-generating mechanism. The notation $X ; Z$ implies that we should adjust for $Z$ when estimating the causal effect. In other words, for the confounder data generating mechanism and direct effect mediator model, the potential outcomes are independent of exposure given the observed factor $Z$. {#tbl-1}
 
 
 ```{r}
@@ -436,6 +437,6 @@ R code to generate the tables and figures:
 ```{r}
 #| eval: false
 #| echo: true
-#| ref.label: ["fig-2", "tbl-2"]
+#| ref.label: ["fig-2", "tbl-2", "tbl-3"]
 ```
 
