@@ -30,9 +30,9 @@ options(
 # set default theme
 theme_set(
   theme_minimal(
-    base_size = 14, 
+    base_size = 14,
     base_family = "sans"
-  ) %+replace% 
+  ) %+replace%
     theme(
       panel.grid.minor = element_blank(),
       legend.position = "bottom"
@@ -44,18 +44,17 @@ theme_dag <- function() {
 geom_dag_label_repel <- function(..., seed = 10) {
   ggdag::geom_dag_label_repel(
     aes(x, y, label = label),
-    box.padding = 3.5, 
+    box.padding = 3.5,
     inherit.aes = FALSE,
-    max.overlaps = Inf, 
+    max.overlaps = Inf,
     family = "sans",
     seed = seed,
-    label.size = NA, 
+    label.size = NA,
     label.padding = 0.1,
     size = 14 / 3,
     ...
-  ) 
+  )
 }
-
 ```
 
 ## Abstract
@@ -132,7 +131,7 @@ library(ggokabeito)
 
 expander <- function() {
   expand_plot(
-    expand_x = expansion(c(0.01, 0.05)), 
+    expand_x = expansion(c(0.01, 0.05)),
     expand_y = expansion(c(0.2, 0.2))
   )
 }
@@ -218,7 +217,7 @@ d_coll |>
   scale_color_manual(values = c("#A8CF9E", "#51c1ad", "#357edd")) +
   theme(legend.position = "none") +
   ggtitle("(1) Collider") +
-  expander()  -> p_coll
+  expander() -> p_coll
 
 d_med |>
   tidy_dagitty() |>
@@ -233,7 +232,7 @@ d_med |>
   scale_color_manual(values = c("#A8CF9E", "#51c1ad", "#357edd")) +
   theme(legend.position = "none") +
   ggtitle("(3) Mediator") +
-  expander()  -> p_med
+  expander() -> p_med
 
 d_conf |>
   tidy_dagitty() |>
@@ -247,10 +246,10 @@ d_conf |>
   coord_cartesian(clip = "off") +
   scale_color_manual(values = c("#A8CF9E", "#51c1ad", "#357edd")) +
   theme(legend.position = "none") +
-  ggtitle("(2) Confounder") + 
+  ggtitle("(2) Confounder") +
   expander() -> p_conf
 
-(p_coll + plot_spacer() + p_conf) /  (p_med + plot_spacer() + p_m_bias)  
+(p_coll + plot_spacer() + p_conf) / (p_med + plot_spacer() + p_m_bias)
 ```
 
 ```{r}
@@ -263,11 +262,11 @@ library(quartets)
 ## Figure 2
 
 ggplot(causal_quartet, aes(x = exposure, y = outcome)) +
-  geom_point(alpha = 0.25) + 
+  geom_point(alpha = 0.25) +
   geom_smooth(
-    method = "lm", 
-    formula = "y ~ x", 
-    linewidth = 1.1, 
+    method = "lm",
+    formula = "y ~ x",
+    linewidth = 1.1,
     color = "steelblue"
   ) +
   facet_wrap(~dataset)
@@ -308,16 +307,16 @@ causal_quartet |>
   ) |>
   select(-data, dataset) |>
   knitr::kable(
-    "latex", 
+    "latex",
     booktabs = TRUE,
-    escape = FALSE, 
+    escape = FALSE,
     col.names = kableExtra::linebreak(c(
-      "Data generating mechanism", 
-      "ATE\nnot adjusting for Z", 
-      "ATE\nadjusting for Z", 
+      "Data generating mechanism",
+      "ATE\nnot adjusting for Z",
+      "ATE\nadjusting for Z",
       "Correlation of\nX and Z"
-      ), align = "c")
-  ) 
+    ), align = "c")
+  )
 ```
 
 ## The Solution
@@ -327,17 +326,21 @@ Here we have demonstrated that when presented with an exposure, outcome, and som
 ```{r}
 #| label: fig-3
 #| fig-cap: "Time-ordered collider DAG where each factor is measured twice. $X$ is the exposure, $Y$ is the outcome, and $Z$ is the measured factor. The highlighted $Z$ node indicates which time point is being adjusted for when estimating the average treatment effect of the highlighted $X$ on the highlighted $Y$"
-#| fig-subcap: 
+#| fig-subcap:
 #|   - "Adjusting for $Z$ as shown here would induce collider bias."
 #|   - "Adjusting for this pre-exposure $Z$ as shown here would **not** induce collider bias."
 #| layout-ncol: 2
 coords <- list(
-  x = c(X_0 = 1, X_1 = 2, Z_1 = 2, Y_1 = 1.9, X_2 = 3, Y_2 = 2.9, Z_2 = 3,
-        X_3 = 4, Y_3 = 3.9, Z_3 = 4),
-  y = c(X_0 = 1, Y_0 = 1.05,
-        X_1 = 1, Z_1 = 1.1, Y_1 = 1.05,
-        X_2 = 1, Z_2 = 1.1, Y_2 = 1.05,
-        X_3 = 1, Z_3 = 1.1, Y_3 = 1.05)
+  x = c(
+    X_0 = 1, X_1 = 2, Z_1 = 2, Y_1 = 1.9, X_2 = 3, Y_2 = 2.9, Z_2 = 3,
+    X_3 = 4, Y_3 = 3.9, Z_3 = 4
+  ),
+  y = c(
+    X_0 = 1, Y_0 = 1.05,
+    X_1 = 1, Z_1 = 1.1, Y_1 = 1.05,
+    X_2 = 1, Z_2 = 1.1, Y_2 = 1.05,
+    X_3 = 1, Z_3 = 1.1, Y_3 = 1.05
+  )
 )
 d_coll <- dagify(
   Y_2 ~ X_1,
@@ -347,17 +350,19 @@ d_coll <- dagify(
   Z_3 ~ X_2 + Y_3 + Z_2,
   exposure = "X_2",
   outcome = "Y_3",
-  labels = c(X_0 = "X",
-             X_1 = "X",
-             X_2 = "X",
-             X_3 = "X",
-             Y_0 = "Y",
-             Y_1 = "Y",
-             Y_2 = "Y",
-             Y_3 = "Y",
-             Z_1 = "Z",
-             Z_2 = "Z",
-             Z_3 = "Z"),
+  labels = c(
+    X_0 = "X",
+    X_1 = "X",
+    X_2 = "X",
+    X_3 = "X",
+    Y_0 = "Y",
+    Y_1 = "Y",
+    Y_2 = "Y",
+    Y_3 = "Y",
+    Z_1 = "Z",
+    Z_2 = "Z",
+    Z_3 = "Z"
+  ),
   coords = coords
 )
 
@@ -365,7 +370,8 @@ d_coll |>
   tidy_dagitty() |>
   mutate(color = case_when(
     !(name %in% c("X_2", "Y_3", "Z_3")) ~ "grey",
-    TRUE ~ label)) |>
+    TRUE ~ label
+  )) |>
   ggplot(
     aes(x = x, y = y, xend = xend, yend = yend)
   ) +
@@ -373,18 +379,19 @@ d_coll |>
   geom_dag_edges() +
   geom_dag_text(aes(label = label)) +
   theme_dag() +
-  coord_cartesian(clip = "off")  +
+  coord_cartesian(clip = "off") +
   scale_color_manual(values = c("lightgrey", "#A8CF9E", "#51c1ad", "#357edd")) +
-  theme(legend.position = "none") + 
-  geom_vline(xintercept = c(2.6, 3.25, 3.6, 4.25), lty = 2) + 
-  annotate("label", x = 2.925, y = 0.97, label = "baseline") + 
+  theme(legend.position = "none") +
+  geom_vline(xintercept = c(2.6, 3.25, 3.6, 4.25), lty = 2) +
+  annotate("label", x = 2.925, y = 0.97, label = "baseline") +
   annotate("label", x = 3.925, y = 0.97, label = "follow-up")
 
 d_coll |>
   tidy_dagitty() |>
   mutate(color = case_when(
     !(name %in% c("X_2", "Y_3", "Z_2")) ~ "grey",
-    TRUE ~ label)) |>
+    TRUE ~ label
+  )) |>
   ggplot(
     aes(x = x, y = y, xend = xend, yend = yend)
   ) +
@@ -392,11 +399,11 @@ d_coll |>
   geom_dag_edges() +
   geom_dag_text(aes(label = label)) +
   theme_dag() +
-  coord_cartesian(clip = "off")  +
+  coord_cartesian(clip = "off") +
   scale_color_manual(values = c("lightgrey", "#A8CF9E", "#51c1ad", "#357edd")) +
-  theme(legend.position = "none") + 
-  geom_vline(xintercept = c(2.6, 3.25, 3.6, 4.25), lty = 2) + 
-  annotate("label", x = 2.925, y = 0.97, label = "baseline") + 
+  theme(legend.position = "none") +
+  geom_vline(xintercept = c(2.6, 3.25, 3.6, 4.25), lty = 2) +
+  annotate("label", x = 2.925, y = 0.97, label = "baseline") +
   annotate("label", x = 3.925, y = 0.97, label = "follow-up")
 ```
 
@@ -411,27 +418,28 @@ Absent subject matter expertise, the analyst can at least consider the time orde
 causal_quartet_time |>
   nest_by(dataset) |>
   mutate(
-    `ATE not adjusting for Z` = 
+    `ATE not adjusting for Z` =
       round_coefs(lm(outcome_followup ~ exposure_baseline, data = data)),
-    `ATE adjusting for Z` = 
+    `ATE adjusting for Z` =
       round_coefs(lm(
-        outcome_followup ~ exposure_baseline + covariate_baseline, 
+        outcome_followup ~ exposure_baseline + covariate_baseline,
         data = data
       ))
   ) |>
   bind_cols(tibble(truth = c(1, 0.5, 1, 1))) |>
   select(-data, dataset) |>
   knitr::kable(
-    "latex", 
+    "latex",
     booktabs = TRUE,
-    escape = FALSE, 
+    escape = FALSE,
     col.names = kableExtra::linebreak(c(
-      "Data generating mechanism", 
-      "ATE\nnot adjusting for\npre-exposure Z", 
+      "Data generating mechanism",
+      "ATE\nnot adjusting for\npre-exposure Z",
       "ATE\nadjusting for\npre-exposure Z",
-      "Correct causal effect"), align = "c"),
+      "Correct causal effect"
+    ), align = "c"),
     digits = 2
-  ) 
+  )
 ```
 
 Adjusting for only pre-exposure factors is widely recommended. The only exception is when a known confounder is only measured after the exposure in a particular data analysis, in which case some experts recommend adjusting for it. Still, even then, caution is advised [@groenwold2021adjust]. Many causal inference methodologists would recommend conditioning on *all* measured pre-exposure factors [@rosenbaumconstructing; @rubin2009should; @rubin1996matching; @rubin2008objective]. Including timing information alone (and thus adjusting for all pre-exposure factors) does not preclude one from mistakenly fitting the adjusted model under the fourth data generating mechanism (M-bias), as $Z$ can fall temporally before $X$ and $Y$ and still induce bias. Some authors have argued, however, that this strict M-bias (e.g., where $U_1$ and $U_2$ in @eq-mbias have no relationship with each other and $Z$ has no relationship with $X$ or $Y$ other than via $U_1$ and $U_2$) is very rare in most practical settings [@liu2012implications; @rubin2009should; @gelman2011causality]. Indeed, even theoretical results have demonstrated that bias induced by this data-generating mechanism is sensitive to deviations from this form [@ding2015adjust].
@@ -456,5 +464,3 @@ R code to generate the tables and figures:
 #| echo: true
 #| ref.label: ["fig-2", "tbl-2", "tbl-3"]
 ```
-
-
