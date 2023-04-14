@@ -295,21 +295,29 @@ ggplot(causal_quartet, aes(x = exposure, y = outcome)) +
 #| tbl-cap: "Coefficients for the exposure under each data generating mechanism depending on the model fit as well as the correlation between $X$ and $Z$."
 
 ## Table 2
+round_coefs <- function(.mdl) {
+  round(coef(.mdl)[2], 2)
+}
 
 causal_quartet |>
   nest_by(dataset) |>
-  mutate(`ATE not adjusting for Z` = round(coef(lm(outcome ~ exposure, data = data))[2], 2),
-         `ATE adjusting for Z` = round(coef(lm(outcome ~ exposure + covariate, data = data))[2], 2),
-         `Correlation of X and Z` = round(cor(data$exposure, data$covariate), 2)) |>
+  mutate(
+    `ATE not adjusting for Z` = round_coefs(lm(outcome ~ exposure, data = data)),
+    `ATE adjusting for Z` = round_coefs(lm(outcome ~ exposure + covariate, data = data)),
+    `Correlation of X and Z` = round(cor(data$exposure, data$covariate), 2)
+  ) |>
   select(-data, dataset) |>
-  knitr::kable("latex", 
-               booktabs = TRUE,
-               escape = FALSE, 
-               col.names = 
-                 kableExtra::linebreak(c("Data generating mechanism", 
-                                         "ATE\nnot adjusting for Z", 
-                                         "ATE\nadjusting for Z", 
-                                         "Correlation of\nX and Z"), align = "c")) 
+  knitr::kable(
+    "latex", 
+    booktabs = TRUE,
+    escape = FALSE, 
+    col.names = kableExtra::linebreak(c(
+      "Data generating mechanism", 
+      "ATE\nnot adjusting for Z", 
+      "ATE\nadjusting for Z", 
+      "Correlation of\nX and Z"
+      ), align = "c")
+  ) 
 ```
 
 ## The Solution
@@ -402,19 +410,28 @@ Absent subject matter expertise, the analyst can at least consider the time orde
 
 causal_quartet_time |>
   nest_by(dataset) |>
-  mutate(`ATE not adjusting for Z` = round(coef(lm(outcome_followup ~ exposure_baseline, data = data))[2], 2),
-         `ATE adjusting for Z` = round(coef(lm(outcome_followup ~ exposure_baseline + covariate_baseline, data = data))[2], 2)) |>
+  mutate(
+    `ATE not adjusting for Z` = 
+      round_coefs(lm(outcome_followup ~ exposure_baseline, data = data)),
+    `ATE adjusting for Z` = 
+      round_coefs(lm(
+        outcome_followup ~ exposure_baseline + covariate_baseline, 
+        data = data
+      ))
+  ) |>
   bind_cols(tibble(truth = c(1, 0.5, 1, 1))) |>
   select(-data, dataset) |>
-  knitr::kable("latex", 
-               booktabs = TRUE,
-               escape = FALSE, 
-               col.names = 
-                 kableExtra::linebreak(c("Data generating mechanism", 
-                                         "ATE\nnot adjusting for\npre-exposure Z", 
-                                         "ATE\nadjusting for\npre-exposure Z",
-                                         "Correct causal effect"), align = "c"),
-               digits = 2) 
+  knitr::kable(
+    "latex", 
+    booktabs = TRUE,
+    escape = FALSE, 
+    col.names = kableExtra::linebreak(c(
+      "Data generating mechanism", 
+      "ATE\nnot adjusting for\npre-exposure Z", 
+      "ATE\nadjusting for\npre-exposure Z",
+      "Correct causal effect"), align = "c"),
+    digits = 2
+  ) 
 ```
 
 Adjusting for only pre-exposure factors is widely recommended. The only exception is when a known confounder is only measured after the exposure in a particular data analysis, in which case some experts recommend adjusting for it. Still, even then, caution is advised [@groenwold2021adjust]. Many causal inference methodologists would recommend conditioning on *all* measured pre-exposure factors [@rosenbaumconstructing; @rubin2009should; @rubin1996matching; @rubin2008objective]. Including timing information alone (and thus adjusting for all pre-exposure factors) does not preclude one from mistakenly fitting the adjusted model under the fourth data generating mechanism (M-bias), as $Z$ can fall temporally before $X$ and $Y$ and still induce bias. Some authors have argued, however, that this strict M-bias (e.g., where $U_1$ and $U_2$ in @eq-mbias have no relationship with each other and $Z$ has no relationship with $X$ or $Y$ other than via $U_1$ and $U_2$) is very rare in most practical settings [@liu2012implications; @rubin2009should; @gelman2011causality]. Indeed, even theoretical results have demonstrated that bias induced by this data-generating mechanism is sensitive to deviations from this form [@ding2015adjust].
