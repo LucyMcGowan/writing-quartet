@@ -1,6 +1,6 @@
 ---
 title: "Causal inference is not a statistical problem"
-author: 
+author:
  - "Lucy D'Agostino McGowan"
  - "Travis Gerke"
  - "Malcolm Barrett"
@@ -291,20 +291,27 @@ ggplot(causal_quartet, aes(x = exposure, y = outcome)) +
 
 
 ```{r}
-#| label: tbl-2
-#| tbl-cap: "Coefficients for the exposure under each data generating mechanism depending on the model fit as well as the correlation between $X$ and $Z$."
+#| label: create-tbl-2
 
 ## Table 2
 
-causal_quartet |>
+tbl_2 <- causal_quartet |>
   nest_by(dataset) |>
-  mutate(`ATE not adjusting for Z` = round(coef(lm(outcome ~ exposure, data = data))[2], 2),
-         `ATE adjusting for Z` = round(coef(lm(outcome ~ exposure + covariate, data = data))[2], 2),
-         `Correlation of X and Z` = round(cor(data$exposure, data$covariate), 2)) |>
-  select(-data, dataset) |>
+  mutate(ate_x = coef(lm(outcome ~ exposure, data = data))[2],
+         ate_xz = coef(lm(outcome ~ exposure + covariate, data = data))[2],
+         cor = cor(data$exposure, data$covariate)) |>
+  select(-data, dataset)
+```
+
+
+```{r}
+#| label: tbl-2
+#| tbl-cap: "Coefficients for the exposure under each data generating mechanism depending on the model fit as well as the correlation between $X$ and $Z$."
+tbl_2 |>
   knitr::kable("latex", 
                booktabs = TRUE,
                escape = FALSE, 
+               digits = 2,
                col.names = 
                  kableExtra::linebreak(c("Data generating mechanism", 
                                          "ATE\nnot adjusting for Z", 
@@ -395,17 +402,29 @@ d_coll |>
 Absent subject matter expertise, the analyst can at least consider the time ordering of the available factors. Fundamental principles of causal inference dictate that the exposure of interest must precede the outcome of interest to establish a causal relationship plausibly. In addition, to account for potential confounding, any covariates adjusted for in the analysis must precede the exposure in time. Including this additional timing information would omit the potential for two of the three misspecified models above (@eq-col the "collider" and @eq-med the "mediator") as the former would demonstrate that the factor $Z$ falls after both the exposure and outcome and the latter would show that the factor $Z$ falls between the exposure and the outcome in time. For example, if we drew the second panel of @fig-1 (the Collider) as a time ordered DAG, we would see something like @fig-3. If we carefully adjust only for factors that are measured pre-exposure, we would not induce the bias we see in @tbl-2 (@fig-3-2). The Causal Quartets data sets are accompanied by a set of four data sets with time-varying measures for each of the factors, $X$, $Y$, and $Z$, generated under the same data generating mechanisms. Here, as long as a pre-exposure measure of $Z$ is adjusted for, the correct causal effect is estimated in all scenarios except M-Bias (@tbl-3).
 
 ```{r}
+#| label: create-tbl-3
+## Table 3
+
+tbl_3 <- causal_quartet_time |>
+  nest_by(dataset) |>
+  mutate(ate_x = 
+           coef(
+               lm(outcome_followup ~ exposure_baseline, data = data)
+             )[2],
+         ate_xz = 
+             coef(
+               lm(outcome_followup ~ exposure_baseline + covariate_baseline, 
+                  data = data)
+             )[2]) |>
+  bind_cols(tibble(truth = c(1, 0.5, 1, 1))) |>
+  select(-data, dataset)
+```
+
+```{r}
 #| label: tbl-3
 #| tbl-cap: "Coefficients for the exposure under each data generating mechanism depending on the model fit as well as the correlation between $X$ and $Z$."
 
-## Table 3
-
-causal_quartet_time |>
-  nest_by(dataset) |>
-  mutate(`ATE not adjusting for Z` = round(coef(lm(outcome_followup ~ exposure_baseline, data = data))[2], 2),
-         `ATE adjusting for Z` = round(coef(lm(outcome_followup ~ exposure_baseline + covariate_baseline, data = data))[2], 2)) |>
-  bind_cols(tibble(truth = c(1, 0.5, 1, 1))) |>
-  select(-data, dataset) |>
+tbl_3 |>
   knitr::kable("latex", 
                booktabs = TRUE,
                escape = FALSE, 
@@ -437,6 +456,6 @@ R code to generate the tables and figures:
 ```{r}
 #| eval: false
 #| echo: true
-#| ref.label: ["fig-2", "tbl-2", "tbl-3"]
+#| ref.label: ["fig-2", "create-tbl-2", "create-tbl-3"]
 ```
 
